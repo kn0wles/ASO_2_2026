@@ -1,0 +1,37 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+    name: '*'
+    state: latest
+    update_cache: yes
+  register: zypper_update
+  retries: 5
+  delay: 4
+  until: zypper_update is succeeded
+  when: ansible_facts['distribution'] == 'openSUSE'
+
+- name: Instalar PHP8 base
+  ansible.builtin.zypper:
+    name: php8
+    state: present
+  notify: Reiniciar apache2
+
+- name: Instalar módulo PHP7 para Apache
+  ansible.builtin.zypper:
+    name: apache2-mod_php8
+    state: present
+  notify: Reiniciar apache2
+
+- name: Instalar soporte PHP para MySQL/MariaDB
+  ansible.builtin.zypper:
+    name: php8-mysql
+    state: present
+  notify: Reiniciar apache2
+
+- name: Instalar módulos extras para phpMyAdmin
+  ansible.builtin.zypper:
+    name:
+      - php8-mbstring
+      - php8-zip
+    state: present
+  notify: Reiniciar apache2

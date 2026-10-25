@@ -1,0 +1,39 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+    name: '*'
+    state: latest
+    update_cache: yes
+  register: zypper_update
+  retries: 5
+  delay: 4
+  until: zypper_update is succeeded
+  when: ansible_facts['distribution'] == 'openSUSE'
+
+- name: Instalar MariaDB
+  ansible.builtin.zypper:
+    name: mariadb
+    state: present
+
+- name: Iniciar y habilitar servicio MariaDB
+  ansible.builtin.systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Esperar a que MariaDB esté listo
+  ansible.builtin.wait_for:
+    path: /run/mysql/mysql.sock
+    state: present
+    timeout: 30
+
+- name: Configurar contraseña root
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: mundolibre
+    login_unix_socket: /run/mysql/mysql.sock
+    check_implicit_admin: true
+    priv: "*.*:ALL,GRANT"
+    state: present
+  no_log: true

@@ -1,0 +1,4 @@
+---
+postgres_user: "admin_aso"
+postgres_password: "mundolibre"
+postgres_db: "db_aso"

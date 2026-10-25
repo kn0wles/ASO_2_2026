@@ -1,0 +1,31 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+      name: '*'
+      state: latest
+      update_cache: yes
+  retries: 5              # Número de intentos
+  delay: 4               # Tiempo de espera (en segundos) entre cada intento
+  when: ansible_facts['distribution'] == 'openSUSE'
+  register: zypper_update
+  until: zypper_update is success  # Intentará hasta que la tarea sea exitos
+
+- name: Instalar vsftpd
+  ansible.builtin.zypper:
+    name: vsftpd
+    state: present
+
+- name: Asegurar que el servicio vsftpd está habilitado e iniciado
+  ansible.builtin.systemd:
+    name: vsftpd
+    enabled: yes
+    state: started
+
+- name: Copiar archivo de configuración personalizado (opcional)
+  ansible.builtin.template:
+    src: vsftpd.conf
+    dest: /etc/vsftpd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar vsftpd

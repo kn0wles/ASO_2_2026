@@ -1,0 +1,2 @@
+samba_create_mask: "0777"
+samba_directory_mask: "0777"

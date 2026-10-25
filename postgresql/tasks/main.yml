@@ -1,0 +1,69 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+    name: '*'
+    state: latest
+    update_cache: yes
+  when: ansible_facts['distribution'] == 'openSUSE'
+
+- name: Instalar PostgreSQL
+  ansible.builtin.zypper:
+    name: postgresql-server
+    state: present
+
+- name: Instalar librería de PHP para PostgreSQL
+  ansible.builtin.zypper:
+    name: php8-pgsql  
+    state: present
+
+- name: Iniciar y habilitar servicio PostgreSQL
+  ansible.builtin.systemd:
+    name: postgresql
+    enabled: yes
+    state: started
+
+- name: Esperar a que Postgres esté listo
+  ansible.builtin.wait_for:
+    port: 5432
+    timeout: 30
+
+# --- CONFIGURACIÓN REMOTA Y ENCRIPTACIÓN ---
+- name: Copiar configuración de postgresql.conf
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: /var/lib/pgsql/data/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  notify: Reiniciar postgresql
+
+- name: Copiar configuración de pg_hba.conf
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  notify: Reiniciar postgresql
+
+# --- CREACIÓN DE USUARIO Y BASE DE DATOS ---
+- name: Configurar contraseña del usuario postgres del sistema
+  ansible.builtin.shell: |
+    su - postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD '{{ postgres_password }}';\""
+  no_log: true
+
+- name: Crear base de datos
+  ansible.builtin.shell: |
+    su - postgres -c "psql -c \"CREATE DATABASE {{ postgres_db }};\""
+  ignore_errors: yes
+
+- name: Crear nuevo usuario de PostgreSQL
+  ansible.builtin.shell: |
+    su - postgres -c "psql -c \"CREATE USER {{ postgres_user }} WITH PASSWORD '{{ postgres_password }}';\""
+  ignore_errors: yes
+  no_log: true
+
+- name: Dar permisos al usuario sobre la base de datos
+  ansible.builtin.shell: |
+    su - postgres -c "psql -c \"ALTER DATABASE {{ postgres_db }} OWNER TO {{ postgres_user }};\""
+  no_log: true

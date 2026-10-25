@@ -1,0 +1,36 @@
+---
+- name: Instalar Samba
+  ansible.builtin.zypper:
+    name: samba
+    state: present
+
+- name: Crear usuario del sistema 'publica'
+  ansible.builtin.user:
+    name: publica
+    state: present
+    
+- name: Crear directorio para compartir
+  ansible.builtin.file:
+    path: /opt/archivos
+    state: directory
+    mode: "{{ samba_directory_mask }}"
+
+- name: Copiar archivo de configuración personalizado
+  ansible.builtin.template:
+    src: smb.conf.j2
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar Samba
+
+- name: Crear usuario Samba
+  ansible.builtin.shell: |
+    (echo "mundolibre"; echo "mundolibre") | smbpasswd -s -a publica
+  no_log: true   
+
+- name: Asegurar que el servicio Samba está habilitado e iniciado
+  ansible.builtin.systemd:
+    name: smb
+    enabled: yes
+    state: started

@@ -1,0 +1,8 @@
+---
+- name: Instalar y configurar vsftpd en openSUSE 16.0
+  hosts: servidor
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - vsftpd

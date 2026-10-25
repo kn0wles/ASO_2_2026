@@ -1,0 +1,6 @@
+---
+- name: Instalar PHP8 y módulos en openSUSE 16.0
+  hosts: all
+  become: yes
+  roles:
+    - php8

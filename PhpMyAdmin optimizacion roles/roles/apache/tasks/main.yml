@@ -1,0 +1,22 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+    name: '*'
+    state: latest
+    update_cache: yes
+  register: zypper_update
+  retries: 5
+  delay: 4
+  until: zypper_update is succeeded
+  when: ansible_facts['distribution'] == 'openSUSE'
+
+- name: Instalar Apache2
+  ansible.builtin.zypper:
+    name: apache2
+    state: present
+
+- name: Asegurar que Apache2 esté habilitado e iniciado
+  ansible.builtin.systemd:
+    name: apache2
+    enabled: yes
+    state: started

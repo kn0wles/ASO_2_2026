@@ -1,0 +1,57 @@
+---
+- name: Actualizar repositorios
+  ansible.builtin.zypper:
+    name: '*'
+    state: latest
+    update_cache: yes
+  register: zypper_update
+  retries: 5
+  delay: 4
+  until: zypper_update is succeeded
+  when: ansible_facts['distribution'] == 'openSUSE'
+
+- name: Instalar phpMyAdmin
+  ansible.builtin.zypper:
+    name: phpMyAdmin
+    state: present
+
+- name: Crear enlace simbólico en htdocs
+  ansible.builtin.file:
+    src: /usr/share/phpMyAdmin
+    dest: /srv/www/htdocs/phpMyAdmin
+    state: link
+
+- name: Esperar a que el enlace simbólico esté disponible
+  ansible.builtin.wait_for:
+    path: /srv/www/htdocs/phpMyAdmin
+    state: present
+    timeout: 5
+
+- name: Dar permisos a la carpeta phpMyAdmin
+  ansible.builtin.file:
+    path: /usr/share/phpMyAdmin
+    mode: '0755'
+    recurse: yes
+
+- name: Cambiar propietario y grupo de phpMyAdmin
+  ansible.builtin.file:
+    path: /usr/share/phpMyAdmin
+    owner: root
+    group: www
+    recurse: yes
+
+- name: Configurar archivo default-server.conf
+  ansible.builtin.blockinfile:
+    path: /etc/apache2/default-server.conf
+    block: |
+      DocumentRoot "/srv/www/htdocs"
+
+      <Directory "/srv/www/htdocs">
+          Options Indexes FollowSymLinks
+          AllowOverride None
+          Require all granted
+      </Directory>
+    marker: "# --- phpMyAdmin config ---"
+    insertafter: EOF
+  notify: Reiniciar apache2
+
