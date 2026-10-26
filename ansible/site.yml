@@ -18,3 +18,4 @@
     - apache
     - mariadb
     - phpmyadmin
+    - postgresql

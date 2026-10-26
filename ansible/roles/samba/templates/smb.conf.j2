@@ -1,0 +1,21 @@
+[global]
+    workgroup = WORKGROUP
+    passdb backend = tdbsam
+    printing = cups
+    printcap name = cups
+    printcap cache time = 750
+    cups options = raw
+    map to guest = Bad User
+    logon path = \\%L\profiles\%U
+    logon home = \\%L\%U
+    logon drive = H:
+    usershare allow guests = No
+
+[{{ system_user }}_share]
+    comment = Recurso Compartido Samba
+    path = {{ samba_share_path }}
+    valid users = {{ system_user }}
+    read only = no
+    guest ok = no
+    create mask = {{ samba_create_mask }}
+    directory mask = {{ samba_directory_mask }}

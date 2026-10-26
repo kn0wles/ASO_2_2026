@@ -18,19 +18,14 @@
     group: users
     mode: '0775'
 
-- name: Configurar smb.conf
-  blockinfile:
-    path: /etc/samba/smb.conf
-    marker: "# {mark} ANSIBLE MANAGED BLOCK"
-    block: |
-      [{{ system_user }}_share]
-          comment = Recurso Compartido Samba
-          path = {{ samba_share_path }}
-          valid users = {{ system_user }}
-          read only = no
-          guest ok = no
-          create mask = {{ samba_create_mask }}
-          directory mask = {{ samba_directory_mask }}
+- name: Configurar smb.conf mediante plantilla
+  template:
+    src: smb.conf.j2
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar Samba
 
 - name: Crear/Actualizar contraseña del usuario en la base de datos de Samba
   shell: |

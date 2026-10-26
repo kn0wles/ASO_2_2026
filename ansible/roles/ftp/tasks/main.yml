@@ -4,6 +4,15 @@
     name: vsftpd
     state: present
 
+- name: Desplegar vsftpd.conf mediante plantilla
+  template:
+    src: vsftpd.conf.j2
+    dest: /etc/vsftpd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar VSFTPD
+
 - name: Abrir servicio FTP en el Firewall
   firewalld:
     service: ftp

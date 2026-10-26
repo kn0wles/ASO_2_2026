@@ -1,3 +1,5 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# handlers file for samba
+- name: Reiniciar Samba
+  systemd:
+    name: smb
+    state: restarted

@@ -1,0 +1,81 @@
+---
+- name: Instalar PostgreSQL, modulo PHP y dependencias Python
+  zypper:
+    name:
+      - postgresql-server
+      - postgresql
+      - php8-pgsql
+      - python3-psycopg2
+    state: present
+
+- name: Habilitar e iniciar servicio PostgreSQL (inicializa el cluster en openSUSE)
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Generar certificado SSL autofirmado para PostgreSQL
+  command: >
+    openssl req -new -x509 -days 365 -nodes -text
+    -out /var/lib/pgsql/data/server.crt
+    -keyout /var/lib/pgsql/data/server.key
+    -subj "/CN={{ ansible_hostname }}"
+  args:
+    creates: /var/lib/pgsql/data/server.crt
+
+- name: Ajustar permisos de clave SSL
+  file:
+    path: "{{ item }}"
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  loop:
+    - /var/lib/pgsql/data/server.crt
+    - /var/lib/pgsql/data/server.key
+
+- name: Desplegar postgresql.conf (Escucha remota y SSL)
+  template:
+    src: postgresql.conf.j2
+    dest: /var/lib/pgsql/data/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  notify: Reiniciar PostgreSQL
+
+- name: Desplegar pg_hba.conf (Reglas de acceso y encriptacion)
+  template:
+    src: pg_hba.conf.j2
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  notify: Reiniciar PostgreSQL
+
+- name: Establecer contrasena del usuario postgres
+  community.postgresql.postgresql_user:
+    name: postgres
+    password: "{{ vault_pg_root_password }}"
+  become: yes
+  become_user: postgres
+
+- name: Crear usuario de PostgreSQL para la aplicacion
+  community.postgresql.postgresql_user:
+    name: "{{ pg_user }}"
+    password: "{{ vault_pg_password }}"
+    role_attr_flags: NOSUPERUSER,CREATEDB,NOCREATEROLE
+  become: yes
+  become_user: postgres
+
+- name: Crear base de datos de PostgreSQL
+  community.postgresql.postgresql_db:
+    name: "{{ pg_database }}"
+    owner: "{{ pg_user }}"
+  become: yes
+  become_user: postgres
+
+- name: Abrir puerto de PostgreSQL en Firewalld
+  firewalld:
+    service: postgresql
+    permanent: yes
+    state: enabled
+    immediate: yes

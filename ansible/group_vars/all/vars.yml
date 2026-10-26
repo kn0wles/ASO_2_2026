@@ -13,3 +13,8 @@ packages_common:
   - mariadb
   - mariadb-client
   - python3-PyMySQL
+
+# PostgreSQL variables
+pg_user: "appuser"
+pg_database: "appdb"
+pg_subnet: "192.168.11.0/24"
