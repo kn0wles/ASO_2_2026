@@ -1,0 +1,32 @@
+---
+- name: Instalar Apache y PHP
+  zypper:
+    name:
+      - apache2
+      - php8
+      - apache2-mod_php8
+    state: present
+
+- name: Habilitar modulo PHP en Apache
+  command: a2enmod php8
+  register: php_mod
+  changed_when:
+    - "'already' not in php_mod.stdout"
+    - "'already' not in php_mod.stderr"
+  failed_when: false
+
+- name: Abrir puertos HTTP y HTTPS en el Firewall
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - http
+    - https
+
+- name: Iniciar y habilitar Apache
+  systemd:
+    name: apache2
+    state: started
+    enabled: yes

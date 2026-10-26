@@ -1,0 +1,32 @@
+
+---
+- name: Instalar MariaDB y conector Python
+  zypper:
+    name:
+      - mariadb
+      - mariadb-client
+      - python3-PyMySQL
+    state: present
+
+- name: Iniciar y habilitar el servicio MariaDB
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Abrir puerto de MariaDB en el Firewall
+  firewalld:
+    service: mysql
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Crear usuario de Base de Datos con privilegios
+  mysql_user:
+    name: "{{ vault_db_user }}"
+    password: "{{ vault_db_password }}"
+    priv: '*.*:ALL'
+    host: '%'
+    state: present
+    login_user: root
+    login_unix_socket: /var/run/mysql/mysql.sock

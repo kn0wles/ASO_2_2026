@@ -1,0 +1,20 @@
+---
+- name: Despliegue de Servicios ASO (LAMP / Samba / FTP)
+  hosts: clientes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: "5. Mostrar información y detalles del Sistema Operativo"
+      ansible.builtin.debug:
+        msg:
+          - "Sistema Operativo: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Arquitectura: {{ ansible_architecture }}"
+          - "Nombre de host: {{ ansible_hostname }}"
+          - "Dirección IP: {{ ansible_default_ipv4.address }}"
+
+  roles:
+    - ftp
+    - samba
+    - apache
+    - mariadb
+    - phpmyadmin

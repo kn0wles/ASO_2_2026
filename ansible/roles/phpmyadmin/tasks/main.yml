@@ -1,0 +1,8 @@
+---
+- name: Instalar phpMyAdmin
+  zypper:
+    name: phpMyAdmin
+    state: present
+  notify: Reiniciar Apache
+
+

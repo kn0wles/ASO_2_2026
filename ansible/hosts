@@ -1,0 +1,2 @@
+[clientes]
+192.168.11.156 ansible_user=client

@@ -1,0 +1,52 @@
+---
+- name: Instalar paquetes de Samba
+  zypper:
+    name: samba
+    state: present
+
+- name: Crear usuario del sistema operativo
+  user:
+    name: "{{ system_user }}"
+    state: present
+    create_home: yes
+
+- name: Crear directorio para el recurso compartido
+  file:
+    path: "{{ samba_share_path }}"
+    state: directory
+    owner: "{{ system_user }}"
+    group: users
+    mode: '0775'
+
+- name: Configurar smb.conf
+  blockinfile:
+    path: /etc/samba/smb.conf
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      [{{ system_user }}_share]
+          comment = Recurso Compartido Samba
+          path = {{ samba_share_path }}
+          valid users = {{ system_user }}
+          read only = no
+          guest ok = no
+          create mask = {{ samba_create_mask }}
+          directory mask = {{ samba_directory_mask }}
+
+- name: Crear/Actualizar contraseña del usuario en la base de datos de Samba
+  shell: |
+    (echo "{{ vault_samba_password }}"; echo "{{ vault_samba_password }}") | smbpasswd -s -a {{ system_user }}
+  register: samba_user_create
+  changed_when: "'Added user' in samba_user_create.stdout"
+
+- name: Habilitar puerto de Samba en Firewalld
+  firewalld:
+    service: samba
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Asegurar que el servicio SMB está activo y habilitado
+  systemd:
+    name: smb
+    state: started
+    enabled: yes

@@ -1,0 +1,15 @@
+---
+system_user: "knowles"
+samba_share_path: "/srv/samba/compartida"
+samba_create_mask: "0775"
+samba_directory_mask: "0775"
+
+packages_common:
+  - vsftpd
+  - samba
+  - apache2
+  - php8
+  - php8-mysql
+  - mariadb
+  - mariadb-client
+  - python3-PyMySQL
