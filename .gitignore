@@ -1,0 +1,7 @@
+*.retry
+playbook2.yml
+playbook3.yml
+playbook_ftp.yml
+ans_aso/
+ansible.cfg
+vsftpd.conf

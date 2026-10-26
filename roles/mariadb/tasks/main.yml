@@ -1,0 +1,35 @@
+---
+- name: 1. Instalar MariaDB en openSUSE
+  zypper:
+    name:
+      - mariadb
+      - mariadb-client
+    state: present
+
+- name: 2. Asegurar que el servicio de MariaDB esté iniciado y habilitado
+  service:
+    name: mysql
+    state: started
+    enabled: true
+
+- name: 3. Asegurar contraseña del usuario root de MariaDB de forma segura
+  mysql_user:
+    login_user: root
+    login_password: "555jared"
+    check_implicit_admin: true
+    name: root
+    password: "555jared"
+    host: "{{ item }}"
+    state: present
+  with_items:
+    - localhost
+    - 127.0.0.1
+    - ::1
+
+- name: 4. Recargar los privilegios de MariaDB
+  mysql_db:
+    login_user: root
+    login_password: "555jared"
+    state: present
+    name: mysql
+  changed_when: false

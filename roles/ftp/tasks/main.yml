@@ -1,0 +1,11 @@
+---
+- name: 1. Instalar el servidor FTP (vsftpd) en openSUSE
+  zypper:
+    name: vsftpd
+    state: present
+
+- name: 2. Asegurar que el servicio vsftpd esté iniciado y habilitado
+  service:
+    name: vsftpd
+    state: started
+    enabled: true

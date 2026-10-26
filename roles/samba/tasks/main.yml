@@ -1,0 +1,55 @@
+---
+- name: 1. Instalar Samba en openSUSE
+  zypper:
+    name: samba
+    state: present
+
+- name: 2. Asegurar que los servicios de Samba (smb y nmb) estén iniciados y habilitados
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - smb
+    - nmb
+
+- name: 3. Crear el directorio compartido en /opt/files con permisos totales
+  file:
+    path: /opt/files
+    state: directory
+    owner: root
+    group: users
+    mode: '0777'
+
+- name: 4. Crear el usuario del sistema ( publica) si no existe
+  user:
+    name: publica
+    state: present
+    create_home: true
+    shell: /bin/bash
+
+- name: 5. Registrar el usuario en Samba con su respectiva contraseña
+  shell: |
+    (echo "555jared"; echo "555jared") | smbpasswd -s -a publica
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: 6. Configurar el archivo smb.conf para incluir el recurso compartido y la create mask
+  ini_file:
+    path: /etc/samba/smb.conf
+    section: files
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+  with_items:
+    - { option: 'comment', value: 'Recurso Compartido Automatizado' }
+    - { option: 'path', value: '/opt/files' }
+    - { option: 'browseable', value: 'yes' }
+    - { option: 'read only', value: 'No' }
+    - { option: 'create mask', value: '0740' }
+
+- name: 7. Reiniciar el servicio de Samba para aplicar los cambios
+  service:
+    name: smb
+    state: restarted

@@ -1,0 +1,10 @@
+---
+- name: Despliegue Automatizado Tarea 3 (LAMP, MariaDB, Samba y FTP) con Roles
+  hosts: servidor
+  become: true
+  roles:
+    - lamp
+    - mariadb
+    - samba
+    - ftp
+
