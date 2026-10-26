@@ -1,0 +1,50 @@
+Guía Paso a Paso: Preparación, Configuración y DespliegueFASE 1: Pasos Previos en Servidor y ClienteAntes de ejecutar Ansible, es necesario preparar la conectividad e infraestructura básica entre el nodo de control (Servidor) y el nodo cliente (openSUSE Leap 16.0).1.1. Configuración de Llaves SSH (Servidor)Genera el par de claves SSH en el servidor (si aún no lo has hecho) y copia la clave pública al usuario client de la máquina remota:Bash# 1. Generar la llave SSH (presionar Enter a todo)
+ssh-keygen -t rsa -b 4096
+
+# 2. Copiar la llave al usuario 'client' en el cliente
+ssh-copy-id client@192.168.11.156
+
+# 3. Verificar que ingresa sin pedir contraseña
+ssh client@192.168.11.156 "hostname"
+1.2. Configuración de Sudo sin Contraseña (Cliente)En la máquina cliente (192.168.11.156), con el usuario root, permite que el usuario client ejecute comandos administrativos vía sudo sin requerir clave:Bashecho "client ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/client
+chmod 0440 /etc/sudoers.d/client
+1.3. Creación de Clave Secreta para Ansible Vault (Servidor)En el servidor, dentro del directorio del proyecto /home/server/ASO/ansible/, crea el archivo oculto que almacenará la contraseña maestra del Vault:Bashcd /home/server/ASO/ansible
+
+# Reemplaza TU_CONTRASEÑA por la contraseña con la que creaste vault.yml
+echo "TU_CONTRASEÑA" > .vault_pass
+chmod 600 .vault_pass
+FASE 2: Configuración de Archivos del Proyecto2.1. Configuración de ansible.cfgEdita o crea el archivo ansible.cfg en la raíz de tu proyecto para gestionar la contraseña del Vault, optimizar el tiempo de respuesta y automatizar el uso de sudo:Ini, TOML[defaults]
+inventory = hosts
+vault_password_file = .vault_pass
+host_key_checking = False
+interpreter_python = auto_silent
+forks = 10
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+become_ask_pass = False
+
+[ssh_connection]
+pipelining = True
+2.2. Modificación del Archivo de Inventario (hosts)Edita el archivo hosts para definir el grupo de clientes y el usuario SSH de conexión. Importante: No coloques contraseñas en texto plano aquí.Ini, TOML[clientes]
+192.168.11.156 ansible_user=client
+2.3. Estructura de Variables (group_vars/all/)Variables Públicas (group_vars/all/vars.yml):YAML---
+system_user: "knowles"
+samba_share_path: "/srv/samba/compartida"
+samba_create_mask: "0775"
+samba_directory_mask: "0775"
+Variables Cifradas (group_vars/all/vault.yml):(Edita usando ansible-vault edit group_vars/all/vault.yml)YAMLvault_db_user: "knowles"
+vault_db_password: "Hola123"
+vault_samba_password: "Hola123"
+FASE 3: Ejecución y Verificación3.1. Prueba de Conectividad InicialEjecuta el módulo ping para confirmar que el servidor se conecta por SSH y eleva privilegios sin errores:Bashansible clientes -m ping
+Respuesta esperada:JSON192.168.11.156 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+3.2. Ejecución del Despliegue PrincipalPara instalar y configurar todos los servicios (FTP, Samba, LAMP, phpMyAdmin):Bashansible-playbook site.yml
+3.3. Comprobación de Idempotencia (changed=0)Ejecuta el comando por segunda vez para verificar que no se realicen cambios innecesarios en el sistema objetivo:Bashansible-playbook site.yml
+Respuesta esperada en el RECAP final:PlaintextPLAY RECAP ****************************************************************************************************************************
+192.168.11.156              : ok=21    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+FASE 4: Verificación Manual de ServiciosUna vez finalizado el despliegue, puedes verificar el funcionamiento directamente desde un navegador o cliente de red apuntando a 192.168.11.156:ServicioMétodo de PruebaResultado EsperadoApacheNavegar a [http://192.168.11.156/](http://192.168.11.156/)Página por defecto de Apache / Test PHPphpMyAdminNavegar a [http://192.168.11.156/phpMyAdmin/](http://192.168.11.156/phpMyAdmin/)Panel de login de MariaDB (user: knowles)Sambasmb://192.168.11.156/knowles_shareAcceso a carpeta compartida con credencialesFTPftp 192.168.11.156 o desde FileZillaConexión exitosa al servidor FTP
