@@ -7,48 +7,68 @@ Esta guía describe la preparación del servidor y del cliente, la configuració
 Antes de ejecutar Ansible, es necesario preparar la conectividad y la infraestructura básica entre el servidor y el cliente.
 
 ### 1.1. Configuración de Hostnames
-- **Server:** `sudo hostnamectl set-hostname server`
-- **Client:** `sudo hostnamectl set-hostname client`
 
-### 1.2. Red y SSH
+1. **Establecer los nombres de host:**
+   - **En VM Server:** `sudo hostnamectl set-hostname server`
+   - **En VM Client:** `sudo hostnamectl set-hostname client`
+
+2. **Verificar o crear los usuarios (`server` y `client`):**
+   - **En VM Server** (crea el usuario `server` solo si no existe):
+
+    ```bash
+    id -u server &>/dev/null || (sudo useradd -m server && echo "Usuario server creado. Asigna una contraseña:" && sudo passwd server)
+    ```
+
+   - **En VM Client** (crea el usuario `client` solo si no existe):
+
+    ```bash
+    id -u client &>/dev/null || (sudo useradd -m client && echo "Usuario client creado. Asigna una contraseña:" && sudo passwd client)
+    ```
+
+3. **Verificar conectividad e IPs** en ambas máquinas con `ip a`.
+
+### 1.2. Instalacion de Servcicios
+
 - Instalar servicios en ambas VMs:
-  ```bash
-  sudo zypper install -y openssh git
-  sudo systemctl enable --now sshd
-  sudo firewall-cmd --add-service=ssh --permanent && sudo firewall-cmd --reload
+
+```bash
+sudo zypper install -y openssh git
+sudo systemctl enable --now sshd
+sudo firewall-cmd --add-service=ssh --permanent && sudo firewall-cmd --reload
+```
 
 ### 1.3. Configuración de acceso SSH
 
-En el servidor, genera una clave SSH si todavía no dispones de una:
+1. Generar par de claves en ambas VMs:
 
 ```bash
 ssh-keygen -t rsa -b 4096
 ```
 
-Copia la clave pública al usuario `client` del cliente:
+2. Intercambiar las claves públicas entre server y client:
 
 ```bash
-ssh-copy-id client@<IP_DEL_CLIENTE>
+ssh-copy-id client@<IP_CLIENT>   # Ejecutar desde server
+ssh-copy-id server@<IP_SERVER>   # Ejecutar desde client
 ```
 
-Verifica que puedes conectarte sin introducir la contraseña:
+3. Verifica que puedes conectarte sin introducir la contraseña:
 
 ```bash
 ssh client@<IP_DEL_CLIENTE> "hostname"
 ```
-> cambiar `<IP_DEL_CLIENTE>` por la dirección IP del cliente, por ejemplo `191.168.11.156`. Si la conexión funciona correctamente, puedes realizar la configuracion similar para el servidor, si es necesario.
+
+> cambiar `<IP_DEL_CLIENTE>` por la dirección IP del cliente, por ejemplo `192.168.11.156`. Si la conexión funciona correctamente, puedes realizar la configuracion similar para el servidor, si es necesario.
 
 ### 1.4. Configuración de sudo sin contraseña en el cliente
 
-En la máquina cliente (`192.168.11.156`), accede como `root` y permite que el usuario `client` ejecute comandos administrativos mediante `sudo` sin requerir contraseña.
+1. Crea el archivo `/etc/sudoers.d/client` con el siguiente contenido:
 
-Crea el archivo `/etc/sudoers.d/client` con el siguiente contenido:
-
-```text
-client ALL=(ALL) NOPASSWD: ALL
+```bash
+echo "client ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/client
 ```
 
-A continuación, establece los permisos adecuados:
+2. A continuación, establece los permisos adecuados:
 
 ```bash
 chmod 0440 /etc/sudoers.d/client
@@ -60,33 +80,74 @@ chmod 0440 /etc/sudoers.d/client
 > visudo -c -f /etc/sudoers.d/client
 > ```
 
-### 1.5. Creación de la clave secreta para Ansible Vault
+### 1.5. Clonación del Repositorio y Bootstrap (Ruta ~/ASO)
 
-En el servidor, dentro del directorio del proyecto `/home/server/ASO/ansible/`, crea el archivo oculto que almacenará la contraseña maestra de Ansible Vault:
+1. Clonar el repositorio e ingresar a la carpeta:
+
+  ```bash
+  git clone https://github.com/kn0wles/ASO_2_2026.git
+  cd ASO_2_2026
+  ```
+
+2. Ejecutar el script de inicialización (instala Ansible, descarga Mitogen dentro del proyecto, bloquea PackageKit en cliente y crea el enlace simbólico ~/ASO):
+
+  ```bash
+  chmod +x setup.sh
+  ./setup.sh
+  ```
+
+### 1.6. Configuración de Ansible Vault y Despliegue
+
+1. Ingresar al directorio de Ansible respetando la ruta estándar:
 
 ```bash
-cd /home/server/ASO/ansible/
+cd ~/ASO/ansible
+```
 
-# Reemplaza TU_CONTRASEÑA por la contraseña con la que creaste vault.yml
+2. Crear o configurar el archivo de credenciales cifradas (vault.yml):
+
+```bash
+ansible-vault edit group_vars/all/vault.yml
+```
+
+3.  Crear el archivo de contraseña automática para Vault (reemplaza TU_CONTRASEÑA por la clave utilizada en el paso anterior):
+
+```bash
 echo "TU_CONTRASEÑA" > .vault_pass
 chmod 600 .vault_pass
 ```
 
-> **Importante:** No subas `.vault_pass` al repositorio. Añádelo al archivo `.gitignore` si es necesario.
+> **Importante:** No subas .vault_pass al repositorio. Asegúrate de que esté incluido en tu archivo .gitignore.
+
+---
 
 ## FASE 2: Configuración de los archivos del proyecto
 
 ### 2.1. Configuración de `ansible.cfg`
 
-Edita o crea el archivo `ansible.cfg` en la raíz del proyecto para configurar la contraseña de Vault, optimizar el tiempo de ejecución y definir la escalada de privilegios:
+Verifica o edita el archivo `ansible.cfg` en `~/ASO/ansible` para activar Mitogen, la contraseña de Vault y la escalada de privilegios:
 
-```ini
+```ini,TOML
 [defaults]
 inventory = hosts
 vault_password_file = .vault_pass
-host_key_checking = False
 interpreter_python = auto_silent
+host_key_checking = False
+retry_files_enabled = False
 forks = 10
+timeout = 30
+
+# Optimización de recolección de datos y Mitogen
+gathering = smart
+fact_caching = memory
+pipelining = True
+strategy_plugins = ./plugins/mitogen-0.3.7/ansible_mitogen/plugins/strategy
+strategy = mitogen_linear
+
+[mitogen]
+reuse_connections = True
+compress = True
+connection_pool_size = 20
 
 [privilege_escalation]
 become = True
@@ -96,13 +157,14 @@ become_ask_pass = False
 
 [ssh_connection]
 pipelining = True
+scp_if_ssh = smart
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o ControlPath=/tmp/ansible-ssh-%%h-%%p-%%r
 ```
 
 ### 2.2. Configuración del inventario `hosts`
 
 Edita el archivo `hosts` para definir el grupo de clientes y el usuario SSH de conexión.
 
-No coloques contraseñas en texto plano en este archivo.
 
 ```ini
 [clientes]
@@ -110,8 +172,6 @@ No coloques contraseñas en texto plano en este archivo.
 ```
 
 ### 2.3. Estructura de variables
-
-La estructura recomendada para las variables es la siguiente:
 
 ```text
 group_vars/
@@ -174,6 +234,8 @@ Para instalar y configurar todos los servicios —FTP, Samba, LAMP y phpMyAdmin�
 ```bash
 ansible-playbook site.yml
 ```
+
+> si quieres medir tiempo que tarda el comando es `time ansible-playbook site.yml`
 
 ### 3.3. Comprobación de idempotencia
 
