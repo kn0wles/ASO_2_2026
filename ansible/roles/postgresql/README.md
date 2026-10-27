@@ -17,7 +17,7 @@ Las siguientes variables se deben definir (ejemplo en `group_vars/all/`):
 
 - `pg_user`: Usuario de aplicación para PostgreSQL (por defecto: appuser)
 - `pg_database`: Base de datos a crear (por defecto: appdb)
-- `pg_subnet`: Subred permitida para conexiones SSL remotas (ej. 192.168.11.0/24)
+- `pg_subnet`: Subred permitida para conexiones SSL remotas (ej. 192.168.100.0/24)
 - `vault_pg_password`: Contraseña del usuario de aplicación (desde vault)
 - `vault_pg_root_password`: Contraseña del usuario postgres (desde vault)
 

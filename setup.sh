@@ -20,6 +20,10 @@ case $OPCION in
     sudo zypper ref
     sudo zypper install -y ansible python3 curl tar
 
+    # 1b. Instalar la coleccion community.postgresql (requerida por el rol postgresql)
+    echo "[+] Instalando coleccion Ansible community.postgresql..."
+    ansible-galaxy collection install community.postgresql
+
     # 2. Respetar la ruta ~/ASO mediante enlace simbólico
     if [ "$REPO_DIR" != "$HOME/ASO" ] && [ ! -e "$HOME/ASO" ]; then
       ln -s "$REPO_DIR" "$HOME/ASO"
@@ -28,11 +32,11 @@ case $OPCION in
 
     # 3. Descargar e instalar Mitogen dentro del repositorio
     MITOGEN_DIR="$HOME/ASO/ansible/plugins"
-    if [ ! -d "$MITOGEN_DIR/mitogen-0.3.7" ]; then
+    if [ ! -d "$MITOGEN_DIR/mitogen-0.3.54" ]; then
       echo "[+] Descargando Mitogen para acelerar ejecución..."
       mkdir -p "$MITOGEN_DIR"
-      curl -sL https://networkgenomics.com/try/mitogen-0.3.7.tar.gz | tar -xz -C "$MITOGEN_DIR"
-      echo "[+] Mitogen instalado en $MITOGEN_DIR/mitogen-0.3.7"
+      curl -sL https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.54.tar.gz | tar -xz -C "$MITOGEN_DIR"
+      echo "[+] Mitogen instalado en $MITOGEN_DIR/mitogen-0.3.54"
     else
       echo "[+] Mitogen ya se encuentra instalado. Saltando descarga..."
     fi
@@ -42,7 +46,7 @@ case $OPCION in
     if [ -f "$ANSIBLE_CFG" ]; then
       if ! grep -q "mitogen_linear" "$ANSIBLE_CFG"; then
         echo "[+] Inyectando configuración de Mitogen en ansible.cfg..."
-        sed -i '/^\[defaults\]/a strategy_plugins = ./plugins/mitogen-0.3.7/ansible_mitogen/plugins/strategy\nstrategy = mitogen_linear' "$ANSIBLE_CFG"
+        sed -i '/^\[defaults\]/a strategy_plugins = ./plugins/mitogen-0.3.54/ansible_mitogen/plugins/strategy\nstrategy = mitogen_linear' "$ANSIBLE_CFG"
       fi
     fi
 
@@ -88,4 +92,3 @@ case $OPCION in
     exit 1
     ;;
 esac
-EOF

@@ -7,6 +7,14 @@
       - apache2-mod_php8
     state: present
 
+- name: Desplegar pagina de inicio LAMP
+  copy:
+    src: index.html
+    dest: /srv/www/htdocs/index.html
+    owner: root
+    group: root
+    mode: '0644'
+
 - name: Habilitar modulo PHP en Apache
   command: a2enmod php8
   register: php_mod

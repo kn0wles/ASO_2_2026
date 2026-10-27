@@ -1,8 +1,20 @@
 ---
-- name: Instalar phpMyAdmin
+- name: Instalar phpMyAdmin y su integracion con Apache
   zypper:
-    name: phpMyAdmin
+    name:
+      - phpMyAdmin
+      - phpMyAdmin-apache
     state: present
+  notify: Reiniciar Apache
+
+- name: Añadir alias en minusculas para phpMyAdmin
+  copy:
+    content: |
+      Alias /phpmyadmin /usr/share/phpMyAdmin
+    dest: /etc/apache2/conf.d/phpmyadmin-lower.conf
+    owner: root
+    group: root
+    mode: '0644'
   notify: Reiniciar Apache
 
 

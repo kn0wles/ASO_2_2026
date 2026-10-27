@@ -1,12 +1,22 @@
-
 ---
 - name: Instalar MariaDB y conector Python
   zypper:
     name:
       - mariadb
       - mariadb-client
-      - python3-PyMySQL
+      - python313-PyMySQL
     state: present
+
+- name: Configurar MariaDB para escuchar en red (bind-address 0.0.0.0)
+  copy:
+    content: |
+      [mysqld]
+      bind-address = 0.0.0.0
+    dest: /etc/my.cnf.d/99-remote-bind.cnf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar MariaDB
 
 - name: Iniciar y habilitar el servicio MariaDB
   systemd:
@@ -28,5 +38,18 @@
     priv: '*.*:ALL'
     host: '%'
     state: present
+    column_case_sensitive: false
     login_user: root
-    login_unix_socket: /var/run/mysql/mysql.sock
+    login_unix_socket: /run/mysql/mysql.sock
+
+- name: Eliminar usuarios anonimos de MariaDB (seguridad)
+  mysql_user:
+    name: ''
+    host: '{{ item }}'
+    state: absent
+    login_user: root
+    login_unix_socket: /run/mysql/mysql.sock
+    column_case_sensitive: false
+  loop:
+    - localhost
+    - '{{ ansible_hostname }}'

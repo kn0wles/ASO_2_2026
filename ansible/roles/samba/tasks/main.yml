@@ -1,7 +1,9 @@
 ---
 - name: Instalar paquetes de Samba
   zypper:
-    name: samba
+    name:
+      - samba
+      - samba-client
     state: present
 
 - name: Crear usuario del sistema operativo
@@ -9,6 +11,25 @@
     name: "{{ system_user }}"
     state: present
     create_home: yes
+
+- name: Generar hash de contraseña para el usuario del sistema
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - passwd
+      - -6
+      - -salt
+      - asosalt1
+      - "{{ vault_samba_password }}"
+  register: system_user_password_hash
+  changed_when: false
+  no_log: true
+
+- name: Establecer contraseña y shell del usuario del sistema (FTP/SSH)
+  user:
+    name: "{{ system_user }}"
+    shell: /bin/bash
+    password: "{{ system_user_password_hash.stdout }}"
 
 - name: Crear directorio para el recurso compartido
   file:

@@ -20,6 +20,13 @@
     state: enabled
     immediate: yes
 
+- name: Abrir rango de puertos pasivos FTP en el Firewall
+  firewalld:
+    port: 30000-30100/tcp
+    permanent: yes
+    state: enabled
+    immediate: yes
+
 - name: Iniciar y habilitar servicio VSFTPD
   systemd:
     name: vsftpd

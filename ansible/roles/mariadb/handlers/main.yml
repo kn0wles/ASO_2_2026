@@ -1,3 +1,5 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# handlers file for mariadb
+- name: Reiniciar MariaDB
+  systemd:
+    name: mariadb
+    state: restarted

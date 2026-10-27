@@ -58,7 +58,7 @@ ssh-copy-id server@<IP_SERVER>   # Ejecutar desde client
 ssh client@<IP_DEL_CLIENTE> "hostname"
 ```
 
-> cambiar `<IP_DEL_CLIENTE>` por la dirección IP del cliente, por ejemplo `192.168.11.156`. Si la conexión funciona correctamente, puedes realizar la configuracion similar para el servidor, si es necesario.
+> cambiar `<IP_DEL_CLIENTE>` por la dirección IP del cliente, por ejemplo `192.168.100.63`. Si la conexión funciona correctamente, puedes realizar la configuracion similar para el servidor, si es necesario.
 
 ### 1.4. Configuración de sudo sin contraseña en el cliente
 
@@ -141,7 +141,7 @@ timeout = 30
 gathering = smart
 fact_caching = memory
 pipelining = True
-strategy_plugins = ./plugins/mitogen-0.3.7/ansible_mitogen/plugins/strategy
+strategy_plugins = ./plugins/mitogen-0.3.54/ansible_mitogen/plugins/strategy
 strategy = mitogen_linear
 
 [mitogen]
@@ -168,7 +168,7 @@ Edita el archivo `hosts` para definir el grupo de clientes y el usuario SSH de c
 
 ```ini
 [clientes]
-192.168.11.156 ansible_user=client
+192.168.100.63 ansible_user=client
 ```
 
 ### 2.3. Estructura de variables
@@ -221,7 +221,7 @@ ansible clientes -m ping
 Respuesta esperada:
 
 ```json
-192.168.11.156 | SUCCESS => {
+192.168.100.63 | SUCCESS => {
     "changed": false,
     "ping": "pong"
 }
@@ -249,20 +249,20 @@ En una ejecución idempotente, el `RECAP` final debería mostrar `changed=0`:
 
 ```text
 PLAY RECAP *********************************************************************
-192.168.11.156 : ok=21  changed=0  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0
+192.168.100.63 : ok=21  changed=0  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0
 ```
 
 ## FASE 4: Verificación manual de los servicios
 
-Una vez finalizado el despliegue, verifica el funcionamiento de los servicios desde un navegador o desde un cliente de red utilizando la dirección `192.168.11.156`.
+Una vez finalizado el despliegue, verifica el funcionamiento de los servicios desde un navegador o desde un cliente de red utilizando la dirección `192.168.100.63`.
 
 | Servicio | Método de verificación |
 |---|---|
-| FTP | Conéctate mediante un cliente FTP a `192.168.11.156`. |
-| Samba | Accede al recurso compartido utilizando `\\192.168.11.156\compartida`. |
-| Apache/LAMP | Abre `http://192.168.11.156` en un navegador. |
-| phpMyAdmin | Abre `http://192.168.11.156/phpmyadmin`. |
-| SSH | Ejecuta `ssh client@192.168.11.156`. |
+| FTP | Conéctate mediante un cliente FTP a `192.168.100.63`. |
+| Samba | Accede al recurso compartido utilizando `\\192.168.100.63\compartida`. |
+| Apache/LAMP | Abre `http://192.168.100.63` en un navegador. |
+| phpMyAdmin | Abre `http://192.168.100.63/phpmyadmin`. |
+| SSH | Ejecuta `ssh client@192.168.100.63`. |
 
 ## Solución rápida de problemas
 

@@ -5,7 +5,7 @@
       - postgresql-server
       - postgresql
       - php8-pgsql
-      - python3-psycopg2
+      - python313-psycopg2
     state: present
 
 - name: Habilitar e iniciar servicio PostgreSQL (inicializa el cluster en openSUSE)
@@ -32,6 +32,14 @@
   loop:
     - /var/lib/pgsql/data/server.crt
     - /var/lib/pgsql/data/server.key
+
+- name: Crear directorio de logs de PostgreSQL
+  file:
+    path: /var/lib/pgsql/data/log
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0755'
 
 - name: Desplegar postgresql.conf (Escucha remota y SSL)
   template:
