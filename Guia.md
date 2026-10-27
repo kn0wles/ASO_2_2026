@@ -6,7 +6,18 @@ Esta guía describe la preparación del servidor y del cliente, la configuració
 
 Antes de ejecutar Ansible, es necesario preparar la conectividad y la infraestructura básica entre el servidor y el cliente.
 
-### 1.1. Configuración de acceso SSH
+### 1.1. Configuración de Hostnames
+- **Server:** `sudo hostnamectl set-hostname server`
+- **Client:** `sudo hostnamectl set-hostname client`
+
+### 1.2. Red y SSH
+- Instalar servicios en ambas VMs:
+  ```bash
+  sudo zypper install -y openssh git
+  sudo systemctl enable --now sshd
+  sudo firewall-cmd --add-service=ssh --permanent && sudo firewall-cmd --reload
+
+### 1.3. Configuración de acceso SSH
 
 En el servidor, genera una clave SSH si todavía no dispones de una:
 
@@ -17,16 +28,17 @@ ssh-keygen -t rsa -b 4096
 Copia la clave pública al usuario `client` del cliente:
 
 ```bash
-ssh-copy-id client@192.168.11.156
+ssh-copy-id client@<IP_DEL_CLIENTE>
 ```
 
 Verifica que puedes conectarte sin introducir la contraseña:
 
 ```bash
-ssh client@192.168.11.156 "hostname"
+ssh client@<IP_DEL_CLIENTE> "hostname"
 ```
+> cambiar `<IP_DEL_CLIENTE>` por la dirección IP del cliente, por ejemplo `191.168.11.156`. Si la conexión funciona correctamente, puedes realizar la configuracion similar para el servidor, si es necesario.
 
-### 1.2. Configuración de sudo sin contraseña en el cliente
+### 1.4. Configuración de sudo sin contraseña en el cliente
 
 En la máquina cliente (`192.168.11.156`), accede como `root` y permite que el usuario `client` ejecute comandos administrativos mediante `sudo` sin requerir contraseña.
 
@@ -48,7 +60,7 @@ chmod 0440 /etc/sudoers.d/client
 > visudo -c -f /etc/sudoers.d/client
 > ```
 
-### 1.3. Creación de la clave secreta para Ansible Vault
+### 1.5. Creación de la clave secreta para Ansible Vault
 
 En el servidor, dentro del directorio del proyecto `/home/server/ASO/ansible/`, crea el archivo oculto que almacenará la contraseña maestra de Ansible Vault:
 
